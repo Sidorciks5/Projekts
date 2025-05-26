@@ -1,64 +1,99 @@
 import os
 from datetime import datetime
-import tkinter as tk
-from tkinter import messagebox, scrolledtext
+import pytz
 
+# Faila nosaukums piezīmēm
 faila_nosaukums = "piezimes.txt"
 
-# Funkcija: pievienot piezīmi
+# Laika josla Latvijai
+latvijas_laiks = pytz.timezone("Europe/Riga")
+
+def dabut_laiku():
+    return datetime.now(latvijas_laiks).strftime("%d-%m-%Y %H:%M:%S")
+
 def pievienot_piezimi():
-    teksts = ievades_lauks.get("1.0", tk.END).strip()
-    if teksts:
-        laiks = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ieraksts = f"{laiks} - {teksts}\n"
+    piezime = input("Ieraksti savu piezīmi: ")
+    if piezime.strip():
+        laiks = dabut_laiku()
+        ieraksts = f"{laiks} - {piezime.strip()}\n"
         with open(faila_nosaukums, "a", encoding="utf-8") as fails:
             fails.write(ieraksts)
-        ievades_lauks.delete("1.0", tk.END)
-        messagebox.showinfo("Veiksmīgi", "Piezīme pievienota!")
+        print("✅ Piezīme saglabāta!")
     else:
-        messagebox.showwarning("Brīdinājums", "Lauks ir tukšs!")
+        print("⚠️ Tukša piezīme netiks saglabāta.")
 
-# Funkcija: apskatīt visas piezīmes
 def apskatit_piezimes():
-    teksts = ""
     if os.path.exists(faila_nosaukums):
         with open(faila_nosaukums, "r", encoding="utf-8") as fails:
-            teksts = fails.read()
-    loga_skats.delete("1.0", tk.END)
-    loga_skats.insert(tk.END, teksts)
+            saturs = fails.read()
+            print("\n--- Visas piezīmes ---")
+            print(saturs)
+    else:
+        print("Nav nevienas piezīmes.")
 
-# Funkcija: meklēt piezīmes pēc datuma
 def mekle_piezimes():
-    datums = mekle_lauks.get().strip()
-    rezultats = ""
+    datums = input("Ievadi datumu (DD-MM-YYYY): ").strip()
+    if not datums:
+        print("⚠️ Datums nav ievadīts.")
+        return
+    atrastas = []
     if os.path.exists(faila_nosaukums):
         with open(faila_nosaukums, "r", encoding="utf-8") as fails:
             for rinda in fails:
                 if datums in rinda:
-                    rezultats += rinda
-    loga_skats.delete("1.0", tk.END)
-    loga_skats.insert(tk.END, rezultats if rezultats else "Nav piezīmju dotajā datumā.")
+                    atrastas.append(rinda.strip())
+    if atrastas:
+        print("\n--- Atrastās piezīmes ---")
+        for ieraksts in atrastas:
+            print(ieraksts)
+    else:
+        print("🔍 Nav piezīmju šajā datumā.")
 
-# GUI logs
-logs = tk.Tk()
-logs.title("Notikumu piezīmju ģenerators")
+def izveidot_kopiju():
+    if not os.path.exists(faila_nosaukums):
+        print("📁 Nav piezīmju ko kopēt.")
+        return
 
-# Teksta ievades lauks
-tk.Label(logs, text="Ievadi piezīmi:").pack()
-ievades_lauks = scrolledtext.ScrolledText(logs, height=4, width=50)
-ievades_lauks.pack()
+    ar_laiku = datetime.now(latvijas_laiks).strftime("%d-%m-%Y_%H-%M-%S")
+    jaunais_fails = f"piezimes_kopija_{ar_laiku}.txt"
 
-tk.Button(logs, text="Pievienot piezīmi", command=pievienot_piezimi).pack(pady=5)
-tk.Button(logs, text="Apskatīt visas piezīmes", command=apskatit_piezimes).pack()
+    with open(faila_nosaukums, "r", encoding="utf-8") as ori:
+        saturs = ori.read()
 
-# Meklēšanas lauks
-tk.Label(logs, text="Meklēt pēc datuma (piem. 2025-05-26):").pack(pady=5)
-mekle_lauks = tk.Entry(logs)
-mekle_lauks.pack()
-tk.Button(logs, text="Meklēt", command=mekle_piezimes).pack(pady=5)
+    with open(jaunais_fails, "w", encoding="utf-8") as kopija:
+        kopija.write(saturs)
 
-# Rezultātu skats
-loga_skats = scrolledtext.ScrolledText(logs, height=15, width=60)
-loga_skats.pack(pady=10)
+    print(f"✅ Piezīmes izkopētas failā: {jaunais_fails}")
 
-logs.mainloop()
+def izvelne():
+    while True:
+        print("\nIzvēlies darbību:")
+        print("1. Pievienot jaunu piezīmi")
+        print("2. Apskatīt visas piezīmes")
+        print("3. Meklēt piezīmes pēc datuma")
+        print("4. Iziet")
+
+        izvele = input("Tava izvēle: ")
+        if izvele == "1":
+            pievienot_piezimi()
+        elif izvele == "2":
+            apskatit_piezimes()
+        elif izvele == "3":
+            mekle_piezimes()
+        elif izvele == "4":
+            # Piedāvā kopiju pirms iziešanas
+            atbilde = input("Vai vēlies izveidot kopiju visām piezīmēm pirms aizvēršanas? (j/n): ").lower()
+            if atbilde == "j":
+                izveidot_kopiju()
+            print("👋 Programma beidzas.")
+            break
+        else:
+            print("⚠️ Nepareiza izvēle.")
+
+if __name__ == "__main__":
+    try:
+        import pytz
+    except ImportError:
+        print("Nepieciešama bibliotēka `pytz`. Instalē ar:\n  pip install pytz")
+    else:
+        izvelne()
